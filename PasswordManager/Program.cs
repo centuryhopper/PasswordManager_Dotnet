@@ -1,6 +1,7 @@
 using PasswordManager;
 using PasswordManager.Settings;
 // dotnet add package Npgsql
+// dotnet add package Newtonsoft.Json
 
 
 var builder = WebApplication.CreateBuilder(args);
