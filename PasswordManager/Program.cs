@@ -1,7 +1,13 @@
 using PasswordManager;
 using PasswordManager.Settings;
+// postgres support
 // dotnet add package Npgsql
+
+// json serialization/deserialization
 // dotnet add package Newtonsoft.Json
+
+// .env file loading
+// dotnet add package DotNetEnv
 
 
 var builder = WebApplication.CreateBuilder(args);
