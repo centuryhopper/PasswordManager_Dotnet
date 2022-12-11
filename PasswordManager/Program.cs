@@ -10,6 +10,7 @@ using PasswordManager.Settings;
 // dotnet add package DotNetEnv
 
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // builder.Services.AddEndpointsApiExplorer();
@@ -19,6 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // builder.Services.Configure<PasswordManagerSettings>(builder.Configuration.GetSection("PostgreSQLSettings"));
+
 
 
 var app = builder.Build();
