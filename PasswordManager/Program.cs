@@ -1,4 +1,5 @@
 using PasswordManager;
+using PasswordManager.Services;
 using PasswordManager.Settings;
 // postgres support
 // dotnet add package Npgsql
@@ -21,7 +22,7 @@ builder.Services.AddControllers();
 
 // builder.Services.Configure<PasswordManagerSettings>(builder.Configuration.GetSection("PostgreSQLSettings"));
 
-
+builder.Services.AddSingleton<AccountPostgresService>();
 
 var app = builder.Build();
 
