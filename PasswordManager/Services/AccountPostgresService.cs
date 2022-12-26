@@ -1,9 +1,3 @@
-
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Options;
-
-using Microsoft.AspNetCore.Http.HttpResults;
 using PasswordManager.Utils;
 using System.Data;
 using Newtonsoft.Json;
@@ -83,7 +77,7 @@ public class AccountPostgresService
                 table.AcceptChanges();
             }
 
-            string[] colnames = {"id", "title", "user_name", "password", "inserteddatetime", "lastmodifieddatetime"};
+            string[] colnames = { "id", "title", "user_name", "password", "inserteddatetime", "lastmodifieddatetime" };
             DataTable filteredTable = new DataView(table).ToTable(false, colnames);
 
             // System.Console.WriteLine(JsonConvert.SerializeObject(filteredTable, Formatting.Indented));
@@ -210,7 +204,7 @@ public class AccountPostgresService
             myCon.Open();
             using NpgsqlCommand myCommand = new NpgsqlCommand(query, myCon);
 
-            System.Console.WriteLine(accountModel);
+            // System.Console.WriteLine(accountModel);
 
             // configure parameters
             myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, (object)accountModel.id ?? DBNull.Value);
@@ -260,8 +254,21 @@ public class AccountPostgresService
         }
         catch (Exception e)
         {
-            return Results.BadRequest(e.Message);
+            return Results.BadRequest(e.Message + $" for {accountModel.title}");
         }
+    }
+
+    public async Task<List<IResult>> PostMany(List<AccountModel> accountModels)
+    {
+        List<IResult> results = new List<IResult>(accountModels.Count);
+
+        foreach (var acc in accountModels)
+        {
+            var thisResult = await Post(acc);
+            results.Add(thisResult);
+        }
+
+        return results;
     }
 
     public async Task<IResult> Put(AccountModel accountModel)

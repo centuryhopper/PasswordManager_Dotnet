@@ -49,6 +49,17 @@ public class AccountController : ControllerBase
     }
 
     /// <summary>
+    /// add multiple accounts in one request (updated password field will be encrypted)
+    /// </summary>
+    /// <param name="accountModel"></param>
+    /// <returns></returns>
+    [HttpPost("many")]
+    public async Task<List<IResult>> PostMany([FromBody] List<AccountModel> accountModels)
+    {
+        return await _postgresService.PostMany(accountModels);
+    }
+
+    /// <summary>
     /// update an account (password field will be re-encrypted)
     /// </summary>
     /// <param name="accountModel"></param>
