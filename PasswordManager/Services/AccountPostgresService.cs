@@ -15,11 +15,36 @@ namespace PasswordManager.Services;
 
 public class AccountPostgresService
 {
+    /*
+        create table test_table (
+            id varchar(100) PRIMARY KEY NOT NULL,
+            title varchar(20),
+            user_name varchar(20),
+            password varchar(512),
+            insertteddatetime timestamp,
+            lastmodifieddatetime timestamp,
+            key varchar(512),
+            iv varchar(512)
+        );
+    */
+
     private readonly IConfiguration _configuration;
+    private readonly string postgresqlConnectionString;
 
     public AccountPostgresService(IConfiguration configuration)
     {
         _configuration = configuration;
+
+        // ElephantSQL formatting
+        var uriString = _configuration.GetConnectionString("cloudConnectionString")!;
+        var uri = new Uri(uriString);
+        var db = uri.AbsolutePath.Trim('/');
+        var user = uri.UserInfo.Split(':')[0];
+        var passwd = uri.UserInfo.Split(':')[1];
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var connStr = string.Format("Server={0};Database={1};User Id={2};Password={3};Port={4}",
+            uri.Host, db, user, passwd, port);
+        postgresqlConnectionString = connStr;
     }
 
     /// <summary>
@@ -35,7 +60,8 @@ public class AccountPostgresService
         try
         {
             var table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
+            // string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
+            string sqlDataSource = postgresqlConnectionString;
 
             NpgsqlDataReader myReader;
             using NpgsqlConnection myCon = new NpgsqlConnection(sqlDataSource);
@@ -60,7 +86,7 @@ public class AccountPostgresService
             string[] colnames = {"id", "title", "user_name", "password", "inserteddatetime", "lastmodifieddatetime"};
             DataTable filteredTable = new DataView(table).ToTable(false, colnames);
 
-            System.Console.WriteLine(JsonConvert.SerializeObject(filteredTable, Formatting.Indented));
+            // System.Console.WriteLine(JsonConvert.SerializeObject(filteredTable, Formatting.Indented));
 
             return Results.Ok(JsonConvert.SerializeObject(filteredTable, Formatting.Indented));
         }
@@ -85,7 +111,8 @@ public class AccountPostgresService
         try
         {
             var table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
+            // string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
+            string sqlDataSource = postgresqlConnectionString;
 
             NpgsqlDataReader myReader;
             using NpgsqlConnection myCon = new NpgsqlConnection(sqlDataSource);
@@ -174,7 +201,9 @@ public class AccountPostgresService
 
         try
         {
-            string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
+            // string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
+
+            string sqlDataSource = postgresqlConnectionString;
 
             NpgsqlDataReader myReader;
             using NpgsqlConnection myCon = new NpgsqlConnection(sqlDataSource);
@@ -252,7 +281,9 @@ public class AccountPostgresService
 
         try
         {
-            string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
+            // string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
+
+            string sqlDataSource = postgresqlConnectionString;
 
             NpgsqlDataReader myReader;
             using NpgsqlConnection myCon = new NpgsqlConnection(sqlDataSource);
@@ -311,7 +342,8 @@ public class AccountPostgresService
 
         try
         {
-            string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
+            // string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
+            string sqlDataSource = postgresqlConnectionString;
 
             NpgsqlDataReader myReader;
             using NpgsqlConnection myCon = new NpgsqlConnection(sqlDataSource);

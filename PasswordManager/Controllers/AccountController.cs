@@ -1,14 +1,8 @@
-using System.Data;
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Npgsql;
 using PasswordManager.Models;
-using PasswordManager.Utils;
 using PasswordManager.Services;
 
 // TODO: Add error handling
-// TODO: Add service object and move the low level logic to the service object class
 
 [Route("api/[controller]")]
 [ApiController]
