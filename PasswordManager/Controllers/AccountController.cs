@@ -21,7 +21,7 @@ public class AccountController : ControllerBase
     /// </summary>
     /// <returns></returns>
     [HttpGet]
-    public async Task<IResult> Get()
+    public async Task<string> Get()
     {
         return await _postgresService.Get();
     }

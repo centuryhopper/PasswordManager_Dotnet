@@ -45,7 +45,7 @@ public class AccountPostgresService
     /// read in the entire table in the postgres database
     /// </summary>
     /// <returns></returns>
-    public async Task<IResult> Get()
+    public async Task<string> Get()
     {
         string query = @"
             select * from test_table;
@@ -82,11 +82,11 @@ public class AccountPostgresService
 
             // System.Console.WriteLine(JsonConvert.SerializeObject(filteredTable, Formatting.Indented));
 
-            return Results.Ok(JsonConvert.SerializeObject(filteredTable, Formatting.Indented));
+            return JsonConvert.SerializeObject(filteredTable, Formatting.Indented);
         }
         catch (Exception e)
         {
-            return Results.BadRequest(e.Message);
+            return e.Message;
         }
     }
 

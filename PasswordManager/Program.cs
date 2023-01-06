@@ -10,6 +10,9 @@ using PasswordManager.Settings;
 // .env file loading
 // dotnet add package DotNetEnv
 
+// CORS
+// dotnet add package Microsoft.AspNet.Cors
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,11 +27,23 @@ builder.Services.AddControllers();
 
 builder.Services.AddSingleton<AccountPostgresService>();
 
+// allow client-side apps to fetch data from this api
+builder.Services.AddCors(p => p.AddPolicy("corspolicy", build => {
+    build.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
+}));
+
 var app = builder.Build();
 
 // app.MapControllers();
 
 app.UseRouting();
+
+// allow client-side apps to fetch data from this api
+app.UseCors(builder =>
+    builder.AllowAnyOrigin().
+            AllowAnyHeader().
+            AllowAnyMethod()
+);
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -36,6 +51,9 @@ app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
 });
+
+// app.UseDefaultFiles();
+// app.UseStaticFiles();
 
 // for swagger
 // app.UseSwaggerUI();
