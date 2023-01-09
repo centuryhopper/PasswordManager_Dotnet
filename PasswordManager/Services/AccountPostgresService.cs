@@ -193,6 +193,8 @@ public class AccountPostgresService
             values (@id, @title, @username, @password, @key, @iv, @inserteddatetime, @lastmodifieddatetime);
         ";
 
+
+
         try
         {
             // string sqlDataSource = _configuration.GetConnectionString("postgresqlConnectionString")!;
@@ -204,10 +206,10 @@ public class AccountPostgresService
             myCon.Open();
             using NpgsqlCommand myCommand = new NpgsqlCommand(query, myCon);
 
-            // System.Console.WriteLine(accountModel);
+            System.Console.WriteLine(accountModel);
 
             // configure parameters
-            myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, (object)accountModel.id ?? DBNull.Value);
+            myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, Guid.NewGuid().ToString());
 
             myCommand.Parameters.AddWithValue("@title", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)accountModel.title ?? DBNull.Value);
 
