@@ -13,7 +13,7 @@ public class AccountPostgresService
         create table test_table (
             id varchar(100) PRIMARY KEY NOT NULL,
             title varchar(20),
-            user_name varchar(20),
+            username varchar(20),
             password varchar(512),
             insertteddatetime timestamp,
             lastmodifieddatetime timestamp,
@@ -45,7 +45,7 @@ public class AccountPostgresService
     /// read in the entire table in the postgres database
     /// </summary>
     /// <returns></returns>
-    public async Task<string> Get()
+    public async Task<IResult> Get()
     {
         string query = @"
             select * from test_table;
@@ -77,16 +77,16 @@ public class AccountPostgresService
                 table.AcceptChanges();
             }
 
-            string[] colnames = { "id", "title", "user_name", "password", "inserteddatetime", "lastmodifieddatetime" };
+            string[] colnames = { "id", "title", "username", "password", "inserteddatetime", "lastmodifieddatetime" };
             DataTable filteredTable = new DataView(table).ToTable(false, colnames);
 
             // System.Console.WriteLine(JsonConvert.SerializeObject(filteredTable, Formatting.Indented));
 
-            return JsonConvert.SerializeObject(filteredTable, Formatting.Indented);
+            return Results.Ok<string>(JsonConvert.SerializeObject(filteredTable, Formatting.Indented));
         }
         catch (Exception e)
         {
-            return e.Message;
+            return Results.BadRequest<string>(e.Message);
         }
     }
 
@@ -135,7 +135,7 @@ public class AccountPostgresService
             //     System.Console.WriteLine("-----");
             // }
 
-            string? Id = null, title = null, user_name = null, password = null, inserteddatetime = null, lastmodifieddatetime = null, key = null, iv = null;
+            string? Id = null, title = null, username = null, password = null, inserteddatetime = null, lastmodifieddatetime = null, key = null, iv = null;
 
             table.AsEnumerable().Select(
             row => table.Columns.Cast<DataColumn>().ToDictionary(
@@ -154,8 +154,8 @@ public class AccountPostgresService
                         case "title":
                             title = kvp.Value;
                             break;
-                        case "user_name":
-                            user_name = kvp.Value;
+                        case "username":
+                            username = kvp.Value;
                             break;
                         case "password":
                             password = kvp.Value;
@@ -178,7 +178,7 @@ public class AccountPostgresService
 
             password = SymmetricEncryptionHandler.DecryptStringFromBytes_Aes(Convert.FromBase64String(password!), Convert.FromBase64String(key!), Convert.FromBase64String(iv!));
 
-            return Results.Ok(new List<string> { Id!, title!, user_name!, password, inserteddatetime!, lastmodifieddatetime!, });
+            return Results.Ok(new List<string> { Id!, title!, username!, password, inserteddatetime!, lastmodifieddatetime!, });
         }
         catch (Exception e)
         {
@@ -189,7 +189,7 @@ public class AccountPostgresService
     public async Task<IResult> Post(AccountModel accountModel)
     {
         string query = @"
-            insert into test_table(id, title, user_name, password, key, iv, inserteddatetime, lastmodifieddatetime)
+            insert into test_table(id, title, username, password, key, iv, inserteddatetime, lastmodifieddatetime)
             values (@id, @title, @username, @password, @key, @iv, @inserteddatetime, @lastmodifieddatetime);
         ";
 
@@ -206,10 +206,10 @@ public class AccountPostgresService
             myCon.Open();
             using NpgsqlCommand myCommand = new NpgsqlCommand(query, myCon);
 
-            System.Console.WriteLine(accountModel);
+            // System.Console.WriteLine(accountModel);
 
             // configure parameters
-            myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, Guid.NewGuid().ToString());
+            myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, accountModel.id ?? Guid.NewGuid().ToString());
 
             myCommand.Parameters.AddWithValue("@title", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)accountModel.title ?? DBNull.Value);
 
@@ -278,7 +278,7 @@ public class AccountPostgresService
         string query = @"
             update test_table
             set title=@title,
-            user_name=@username,
+            username=@username,
             password=@password,
             key=@key,
             iv=@iv,
@@ -313,7 +313,7 @@ public class AccountPostgresService
             }
 
             // configure parameters
-            myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, accountModel.id);
+            myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, accountModel.id!);
 
             myCommand.Parameters.AddWithValue("@title", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)accountModel.title ?? DBNull.Value);
 
