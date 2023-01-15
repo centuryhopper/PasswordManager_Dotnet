@@ -1,22 +1,24 @@
-
-
-
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using PasswordManager.Models;
 using PasswordManager.Utils;
 using System.Data;
 using Npgsql;
-using PasswordManager.Models;
 using System.Security.Cryptography;
+
+
 
 namespace PasswordManager.Services;
 
-public class PasswordMangerPostgresService
+public class PasswordManagerPostgresService
 {
     /*
         create table test_table (
             id varchar(100) PRIMARY KEY NOT NULL,
             username varchar(20),
             password varchar(512),
-            insertteddatetime timestamp,
+            inserteddatetime timestamp,
             lastmodifieddatetime timestamp,
             key varchar(512),
             iv varchar(512)
@@ -26,7 +28,7 @@ public class PasswordMangerPostgresService
     private readonly IConfiguration _configuration;
     private readonly string postgresqlConnectionString;
 
-    public PasswordMangerPostgresService(IConfiguration configuration)
+    public PasswordManagerPostgresService(IConfiguration configuration)
     {
         _configuration = configuration;
 
@@ -47,7 +49,7 @@ public class PasswordMangerPostgresService
         // query table to see if the the username and password pair exists in the database. If so the return success and the userId associated with that account (we can filter the password accounts table by this userId to display the proper accounts to the user). Otherwise we return failure to find account pair in the table
 
         string query = @"
-            select id, username, password from user_accounts
+            select id, username, password, key, iv from user_accounts
             where username=@username;
         ";
 
@@ -59,16 +61,18 @@ public class PasswordMangerPostgresService
             myCon.Open();
             using NpgsqlCommand myCommand = new NpgsqlCommand(query, myCon);
 
+
             // configure params
             myCommand.Parameters.AddWithValue("@username", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)pwm.username ?? DBNull.Value);
 
             myReader = await myCommand.ExecuteReaderAsync();
 
             myTable.Load(myReader);
+            System.Console.WriteLine(pwm.username);
 
             if (myTable.Rows.Count == 0)
             {
-                return Results.Ok("incorrect password");
+                return Results.Conflict("incorrect password");
             }
 
             string? username = null, password = null, key = null, iv = null, id = null;
@@ -107,7 +111,7 @@ public class PasswordMangerPostgresService
 
             if (pwm.password == password)
             {
-                return Results.Ok($"login success! Link ID: {id}");
+                return Results.Ok($"login success! token: {createJwtToken(pwm)}");
             }
 
             return Results.Ok("login failure :/");
@@ -117,10 +121,6 @@ public class PasswordMangerPostgresService
         {
             return Results.BadRequest(e.Message);
         }
-
-
-
-
     }
 
     public async Task<IResult> register(PasswordManagerModel pwm)
@@ -142,7 +142,7 @@ public class PasswordMangerPostgresService
             using NpgsqlCommand myCommand = new NpgsqlCommand(query, myCon);
 
             // configure params
-            myCommand.Parameters.AddWithValue("@username", NpgsqlTypes.NpgsqlDbType.Varchar, (object?) pwm.username ?? DBNull.Value);
+            myCommand.Parameters.AddWithValue("@username", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)pwm.username ?? DBNull.Value);
 
             myReader = await myCommand.ExecuteReaderAsync();
 
@@ -150,7 +150,7 @@ public class PasswordMangerPostgresService
 
             if (myTable.Rows.Count > 0)
             {
-                return Results.Ok("An account with this username already exists");
+                return Results.Conflict("An account with this username already exists");
             }
 
             string id = Guid.NewGuid().ToString();
@@ -164,7 +164,7 @@ public class PasswordMangerPostgresService
 
             myCommand2.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, pwm.id ?? id);
 
-            myCommand2.Parameters.AddWithValue("@username", NpgsqlTypes.NpgsqlDbType.Varchar, (object?) pwm.username ?? DBNull.Value);
+            myCommand2.Parameters.AddWithValue("@username", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)pwm.username ?? DBNull.Value);
 
             DateTime myDate = DateTime.ParseExact(
                 DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
@@ -190,11 +190,11 @@ public class PasswordMangerPostgresService
 
             }
 
-            myCommand2.Parameters.AddWithValue("@password", NpgsqlTypes.NpgsqlDbType.Varchar, (object?) pwm.password ?? DBNull.Value);
+            myCommand2.Parameters.AddWithValue("@password", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)pwm.password ?? DBNull.Value);
 
-            myCommand2.Parameters.AddWithValue("@key", NpgsqlTypes.NpgsqlDbType.Varchar, (object?) pwm.aesKey ?? DBNull.Value);
+            myCommand2.Parameters.AddWithValue("@key", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)pwm.aesKey ?? DBNull.Value);
 
-            myCommand2.Parameters.AddWithValue("@iv", NpgsqlTypes.NpgsqlDbType.Varchar, (object?) pwm.aesIV ?? DBNull.Value);
+            myCommand2.Parameters.AddWithValue("@iv", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)pwm.aesIV ?? DBNull.Value);
 
             myReader = await myCommand2.ExecuteReaderAsync();
 
@@ -204,6 +204,29 @@ public class PasswordMangerPostgresService
         {
             return Results.BadRequest(e.Message);
         }
+    }
+
+    private string createJwtToken(PasswordManagerModel pwm)
+    {
+        List<Claim> claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, pwm.username!),
+                new Claim(ClaimTypes.Role, "Admin")
+            };
+
+            var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
+                _configuration.GetSection("AppSettings:Token").Value!));
+
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+
+            var token = new JwtSecurityToken(
+                claims: claims,
+                expires: DateTime.Now.AddDays(1),
+                signingCredentials: creds);
+
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return jwt;
     }
 }
 

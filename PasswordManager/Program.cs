@@ -12,6 +12,10 @@ using PasswordManager.Services;
 // CORS
 // dotnet add package Microsoft.AspNet.Cors
 
+// JWT
+// dotnet add package Microsoft.IdentityModel.Tokens
+// dotnet add package System.IdentityModel.Tokens.Jwt
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +29,8 @@ builder.Services.AddControllers();
 // builder.Services.Configure<PasswordManagerSettings>(builder.Configuration.GetSection("PostgreSQLSettings"));
 
 builder.Services.AddSingleton<AccountPostgresService>();
+builder.Services.AddSingleton<PasswordManagerPostgresService>();
+
 
 // allow client-side apps to fetch data from this api
 builder.Services.AddCors(p => p.AddPolicy("corspolicy", build => {
