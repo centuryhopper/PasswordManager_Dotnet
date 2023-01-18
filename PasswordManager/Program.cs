@@ -1,3 +1,6 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using PasswordManager.Services;
 
 // postgres support
@@ -15,6 +18,10 @@ using PasswordManager.Services;
 // JWT
 // dotnet add package Microsoft.IdentityModel.Tokens
 // dotnet add package System.IdentityModel.Tokens.Jwt
+// dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+
+// Cookies
+// dotnet add package Microsoft.AspNetCore.Authentication.Cookies
 
 
 
@@ -30,12 +37,29 @@ builder.Services.AddControllers();
 
 builder.Services.AddSingleton<AccountPostgresService>();
 builder.Services.AddSingleton<PasswordManagerPostgresService>();
+builder.Services.AddHttpContextAccessor();
+
 
 
 // allow client-side apps to fetch data from this api
-builder.Services.AddCors(p => p.AddPolicy("corspolicy", build => {
+builder.Services.AddCors(p => p.AddPolicy("corspolicy", build =>
+{
     build.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
 }));
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8
+                .GetBytes(builder.Configuration.GetSection("AppSettings:Token").Value!)),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
+
+
 
 var app = builder.Build();
 
@@ -65,6 +89,7 @@ app.UseEndpoints(endpoints =>
 // app.UseSwagger(x => x.SerializeAsV2 = true);
 
 app.UseHttpsRedirection();
+// app.UseCookies();
 
 app.Run();
 

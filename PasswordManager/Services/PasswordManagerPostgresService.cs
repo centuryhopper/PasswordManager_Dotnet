@@ -6,6 +6,8 @@ using PasswordManager.Utils;
 using System.Data;
 using Npgsql;
 using System.Security.Cryptography;
+using System.Web;
+using Microsoft.AspNetCore.Http;
 
 
 
@@ -26,11 +28,13 @@ public class PasswordManagerPostgresService
     */
 
     private readonly IConfiguration _configuration;
+    private readonly HttpContextAccessor httpContextAccessor;
     private readonly string postgresqlConnectionString;
 
-    public PasswordManagerPostgresService(IConfiguration configuration)
+    public PasswordManagerPostgresService(IConfiguration configuration, HttpContextAccessor httpContextAccessor)
     {
         _configuration = configuration;
+        this.httpContextAccessor = httpContextAccessor;
 
         // ElephantSQL formatting
         var uriString = _configuration.GetConnectionString("cloudConnectionString")!;
@@ -68,7 +72,7 @@ public class PasswordManagerPostgresService
             myReader = await myCommand.ExecuteReaderAsync();
 
             myTable.Load(myReader);
-            System.Console.WriteLine(pwm.username);
+            // System.Console.WriteLine(pwm.username);
 
             if (myTable.Rows.Count == 0)
             {
@@ -210,7 +214,7 @@ public class PasswordManagerPostgresService
     {
         List<Claim> claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, pwm.username!),
+                new Claim(ClaimTypes.NameIdentifier, pwm.username!),
                 new Claim(ClaimTypes.Role, "Admin")
             };
 
@@ -228,5 +232,9 @@ public class PasswordManagerPostgresService
 
             return jwt;
     }
+
+
+
+
 }
 
