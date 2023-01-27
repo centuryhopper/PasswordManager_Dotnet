@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using PasswordManager.Models;
 using PasswordManager.Services;
 
-// TODO: Add error handling
+// TODO: Add logger
 
 [Route("api/[controller]")]
 [ApiController]
@@ -10,9 +10,11 @@ public class AccountController : ControllerBase
 {
     private readonly AccountPostgresService _postgresService;
 
+    private readonly ILogger<AccountController> logger;
 
-    public AccountController(AccountPostgresService postgresService)
+    public AccountController(AccountPostgresService postgresService, ILogger<AccountController> logger)
     {
+        this.logger = logger;
         _postgresService = postgresService;
     }
 

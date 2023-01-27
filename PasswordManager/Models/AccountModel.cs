@@ -1,11 +1,20 @@
 
+using System.ComponentModel.DataAnnotations;
+
 namespace PasswordManager.Models;
 
 public class AccountModel
 {
+    [Key]
     public string? id {get; set;}
+
+    [Required, StringLength(32)]
     public string? title {get; set;}
+
+    [Required, StringLength(32)]
     public string? username {get; set;}
+
+    [Required, StringLength(512)]
     public string? password {get; set;}
     public string? aesKey { get; set; }
     public string? aesIV { get; set; }

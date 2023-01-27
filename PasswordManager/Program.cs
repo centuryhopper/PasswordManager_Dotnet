@@ -1,6 +1,8 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using PasswordManager.Data;
 using PasswordManager.Services;
 
 // postgres support
@@ -35,9 +37,8 @@ builder.Services.AddControllers();
 
 // builder.Services.Configure<PasswordManagerSettings>(builder.Configuration.GetSection("PostgreSQLSettings"));
 
-builder.Services.AddSingleton<AccountPostgresService>();
-builder.Services.AddSingleton<PasswordManagerPostgresService>();
-builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AccountPostgresService>();
+builder.Services.AddScoped<PasswordManagerPostgresService>();
 
 
 
@@ -59,10 +60,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 
+builder.Services.AddDbContextPool<PasswordDbContext>(
+    options => {
+
+        // ElephantSQL formatting
+        var uriString = builder.Configuration.GetConnectionString("cloudConnectionString")!;
+        var uri = new Uri(uriString);
+        var db = uri.AbsolutePath.Trim('/');
+        var user = uri.UserInfo.Split(':')[0];
+        var passwd = uri.UserInfo.Split(':')[1];
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var connStr = string.Format("Server={0};Database={1};User Id={2};Password={3};Port={4}",
+            uri.Host, db, user, passwd, port);
+
+        options.UseNpgsql(
+                connStr
+        );
+
+    }
+);
+
 
 
 var app = builder.Build();
 
+app.UseHttpsRedirection();
 // app.MapControllers();
 
 app.UseRouting();
@@ -88,7 +110,6 @@ app.UseEndpoints(endpoints =>
 // app.UseSwaggerUI();
 // app.UseSwagger(x => x.SerializeAsV2 = true);
 
-app.UseHttpsRedirection();
 // app.UseCookies();
 
 app.Run();

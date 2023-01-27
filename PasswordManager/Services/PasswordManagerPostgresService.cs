@@ -28,13 +28,11 @@ public class PasswordManagerPostgresService
     */
 
     private readonly IConfiguration _configuration;
-    private readonly HttpContextAccessor httpContextAccessor;
     private readonly string postgresqlConnectionString;
 
-    public PasswordManagerPostgresService(IConfiguration configuration, HttpContextAccessor httpContextAccessor)
+    public PasswordManagerPostgresService(IConfiguration configuration)
     {
         _configuration = configuration;
-        this.httpContextAccessor = httpContextAccessor;
 
         // ElephantSQL formatting
         var uriString = _configuration.GetConnectionString("cloudConnectionString")!;
