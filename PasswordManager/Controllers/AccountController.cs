@@ -8,14 +8,13 @@ using PasswordManager.Services;
 [ApiController]
 public class AccountController : ControllerBase
 {
-    private readonly AccountPostgresService _postgresService;
-
+    private readonly IDataAccess<AccountModel> dataAccess;
     private readonly ILogger<AccountController> logger;
 
-    public AccountController(AccountPostgresService postgresService, ILogger<AccountController> logger)
+    public AccountController(IDataAccess<AccountModel> dataAccess, ILogger<AccountController> logger)
     {
         this.logger = logger;
-        _postgresService = postgresService;
+        this.dataAccess = dataAccess;
     }
 
     /// <summary>
@@ -25,7 +24,7 @@ public class AccountController : ControllerBase
     [HttpGet]
     public async Task<IResult> Get()
     {
-        return await _postgresService.Get();
+        return await dataAccess.Get();
     }
 
     /// <summary>
@@ -36,7 +35,7 @@ public class AccountController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IResult> Get(string id)
     {
-        return await _postgresService.Get(id);
+        return await dataAccess.Get(id);
     }
 
     /// <summary>
@@ -47,7 +46,7 @@ public class AccountController : ControllerBase
     [HttpPost]
     public async Task<IResult> Post([FromBody] AccountModel accountModel)
     {
-        return await _postgresService.Post(accountModel);
+        return await dataAccess.Post(accountModel);
     }
 
     /// <summary>
@@ -56,9 +55,9 @@ public class AccountController : ControllerBase
     /// <param name="accountModel"></param>
     /// <returns></returns>
     [HttpPost("many")]
-    public async Task<List<IResult>> PostMany([FromBody] List<AccountModel> accountModels)
+    public async Task<IResult> PostMany([FromBody] List<AccountModel> accountModels)
     {
-        return await _postgresService.PostMany(accountModels);
+        return await dataAccess.PostMany(accountModels);
     }
 
     /// <summary>
@@ -69,7 +68,7 @@ public class AccountController : ControllerBase
     [HttpPut]
     public async Task<IResult> Put([FromBody] AccountModel accountModel)
     {
-        return await _postgresService.Put(accountModel);
+        return await dataAccess.Put(accountModel);
     }
 
     /// <summary>
@@ -80,7 +79,7 @@ public class AccountController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IResult> Delete(string id)
     {
-        return await _postgresService.Delete(id);
+        return await dataAccess.Delete(id);
     }
 
 }

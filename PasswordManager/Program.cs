@@ -4,27 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PasswordManager.Data;
 using PasswordManager.Services;
+using PasswordManager.Models;
 
-// postgres support
-// dotnet add package Npgsql
 
-// json serialization/deserialization
-// dotnet add package Newtonsoft.Json
-
-// .env file loading
-// dotnet add package DotNetEnv
-
-// CORS
-// dotnet add package Microsoft.AspNet.Cors
-
-// JWT
-// dotnet add package Microsoft.IdentityModel.Tokens
-// dotnet add package System.IdentityModel.Tokens.Jwt
-// dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
-
-// Cookies
-// dotnet add package Microsoft.AspNetCore.Authentication.Cookies
-
+// type 'dotnet list package' to list all installed nuget packages
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,8 +20,10 @@ builder.Services.AddControllers();
 
 // builder.Services.Configure<PasswordManagerSettings>(builder.Configuration.GetSection("PostgreSQLSettings"));
 
-builder.Services.AddScoped<AccountPostgresService>();
-builder.Services.AddScoped<PasswordManagerPostgresService>();
+// builder.Services.AddScoped<AccountPostgresService>();
+// builder.Services.AddScoped<IDataAccess<AccountModel>, AccountPostgresService>();
+builder.Services.AddScoped<IDataAccess<AccountModel>, EFService>();
+
 
 
 
@@ -61,7 +46,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 });
 
 builder.Services.AddDbContextPool<PasswordDbContext>(
-    options => {
+    options =>
+    {
 
         // ElephantSQL formatting
         var uriString = builder.Configuration.GetConnectionString("cloudConnectionString")!;

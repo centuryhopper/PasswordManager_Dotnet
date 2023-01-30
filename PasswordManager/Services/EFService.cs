@@ -1,10 +1,14 @@
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using PasswordManager.Data;
 using PasswordManager.Models;
+using PasswordManager.Utils;
 
 namespace PasswordManager.Services;
 
-public class EFService : IEFService<AccountModel>
+public class EFService : IDataAccess<AccountModel>
 {
     private readonly PasswordDbContext db;
     private readonly ILogger<EFService> logger;
@@ -20,11 +24,91 @@ public class EFService : IEFService<AccountModel>
         return await db.SaveChangesAsync();
     }
 
+    public async Task<IResult> Get()
+    {
+        try
+        {
+            var models = await (from acc in db.PasswordTableEF orderby acc.title select acc).ToListAsync();
+            models.ForEach(model => model.password = SymmetricEncryptionHandler.DecryptStringFromBytes_Aes(Convert.FromBase64String(model.password!), Convert.FromBase64String(model.aesKey!), Convert.FromBase64String(model.aesIV!)));
+
+            logger.LogInformation("retrieved models from get request");
+
+            return Results.Ok(JsonConvert.SerializeObject(models, Formatting.Indented));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.BadRequest(e.Message);
+        }
+    }
+
+    public async Task<IResult> Post(AccountModel model)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(model.title) || model.username.IsNullOrEmpty() || model.password.IsNullOrEmpty())
+            {
+                logger.LogInformation("one or more fields are null or empty");
+                throw new Exception("not all fields have been properly assigned for your model");
+            }
+
+
+            processModelPassword(model);
+            model.id = Guid.NewGuid().ToString();
+            DateTime myDate = DateTime.ParseExact(
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                "yyyy-MM-dd HH:mm:ss",
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+            model.insertedDateTime = model.lastModifiedDateTime = myDate.ToString();
+
+
+            logger.LogInformation($"{model}");
+            db.Add(model);
+            await Commit();
+            logger.LogInformation($"model {model} was successfully added to db");
+            return Results.Ok($"{model} was successfully added");
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.BadRequest(e.Message);
+        }
+    }
+
+    public async Task<IResult> Get(string id)
+    {
+        try
+        {
+            // var model = await db.PasswordTableEF.FindAsync(id);
+            logger.LogInformation($"table name: \"public\".\"{nameof(db.PasswordTableEF)}\"");
+
+            var model = await db.PasswordTableEF.FromSqlRaw($"select * from \"public\".\"{nameof(db.PasswordTableEF)}\" where id = '{id}'").FirstOrDefaultAsync();
+
+            if (model is null)
+            {
+                throw new Exception("Couldn't get by id because model is null");
+            }
+
+            logger.LogInformation($"{model}");
+
+            model.password = SymmetricEncryptionHandler.DecryptStringFromBytes_Aes(Convert.FromBase64String(model.password!), Convert.FromBase64String(model.aesKey!), Convert.FromBase64String(model.aesIV!));
+
+            return Results.Ok(model);
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.BadRequest(e.Message);
+        }
+    }
+
     public async Task<IResult> Delete(string id)
     {
         try
         {
-            var model = await GetById(id);
+            var model = await db.PasswordTableEF.FindAsync(id);
+
             if (model is null)
             {
                 throw new Exception();
@@ -33,6 +117,8 @@ public class EFService : IEFService<AccountModel>
             db.PasswordTableEF.Remove(model);
 
             await Commit();
+
+            logger.LogInformation($"model ({model}) has been deleted");
 
             return Results.Ok(model);
 
@@ -45,59 +131,56 @@ public class EFService : IEFService<AccountModel>
 
     }
 
-    public async Task<IEnumerable<AccountModel>> GetAll()
-    {
-        return await Task.Run(() => (from acc in db.PasswordTableEF select acc).AsEnumerable());
-    }
-
-    public async Task<AccountModel?> GetById(string id)
+    public async Task<IResult> PostMany(List<AccountModel> models)
     {
         try
         {
-            // var model = await db.PasswordTableEF.FindAsync(id);
-
-            var model = await db.PasswordTableEF.FromSqlInterpolated($"select * from {nameof(db.PasswordTableEF)} where id = {id}").FirstOrDefaultAsync();
-
-            return model;
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return null;
-        }
-    }
-
-    public async Task<IResult> GetByTitle(string title)
-    {
-        try
-        {
-            var model = await db.PasswordTableEF.FromSqlInterpolated($"select * from {nameof(db.PasswordTableEF)} where title = {title}").FirstOrDefaultAsync();
-
-            return Results.Ok(model);
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.BadRequest(e.Message);
-        }
-    }
-
-    public async Task<IResult> PostData(AccountModel model)
-    {
-        try
-        {
-            db.Add(model);
+            models.ForEach((model) => {
+                processModelPassword(model);
+                model.id = Guid.NewGuid().ToString();
+                DateTime myDate = DateTime.ParseExact(
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    "yyyy-MM-dd HH:mm:ss",
+                    System.Globalization.CultureInfo.InvariantCulture
+                );
+                model.insertedDateTime = model.lastModifiedDateTime = myDate.ToString();
+            });
+            await db.PasswordTableEF.AddRangeAsync(models);
             await Commit();
-            return Results.Ok($"{model} was successfully added");
+            logger.LogInformation("your accounts have been successfully added");
+            return Results.Ok(models);
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
-            logger.LogError(e.Message);
+            logger.LogError("your accounts couldn't be added");
             return Results.BadRequest(e.Message);
         }
     }
 
-    public async Task<IResult> Update(AccountModel argModel)
+    private void processModelPassword(AccountModel model)
+    {
+        if (model is null || model.title is null || model.username is null || model.password is null)
+        {
+            return;
+        }
+
+        using (Aes myAes = Aes.Create())
+        {
+            byte[] encrypted = SymmetricEncryptionHandler.EncryptStringToBytes_Aes(model.password, myAes.Key, myAes.IV);
+
+            model.password = Convert.ToBase64String(encrypted);
+            model.aesKey = Convert.ToBase64String(myAes.Key);
+            model.aesIV = Convert.ToBase64String(myAes.IV);
+
+            // System.Console.WriteLine($"encrypted password: {accountModel.password}");
+            // System.Console.WriteLine($"encrypted key: {accountModel.aesKey}");
+            // System.Console.WriteLine($"encrypted iv: {accountModel.aesIV}");
+
+            // System.Console.WriteLine($"decrypted: {SymmetricEncryptionHandler.DecryptStringFromBytes_Aes(encrypted, myAes.Key, myAes.IV)}");
+        }
+    }
+
+    public async Task<IResult> Put(AccountModel argModel)
     {
         try
         {
@@ -105,22 +188,53 @@ public class EFService : IEFService<AccountModel>
 
             if (model is null)
             {
-                throw new Exception();
+                throw new Exception("model was not found, and therefore cannot be updated :(");
             }
 
-            model.title = argModel.title;
-            model.username = argModel.username;
-            model.password = argModel.password;
+            if (!String.IsNullOrEmpty(model.password))
+            {
+                processModelPassword(argModel);
+                model.password = argModel.password;
+                model.aesIV = argModel.aesIV;
+                model.aesKey = argModel.aesKey;
+            }
+
+            model.title = String.IsNullOrEmpty(argModel.title) ? model.title : argModel.title;
+            model.username = String.IsNullOrEmpty(argModel.username) ? model.username : argModel.username;
+            DateTime myDate = DateTime.ParseExact(
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                "yyyy-MM-dd HH:mm:ss",
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+            model.lastModifiedDateTime = myDate.ToString();
 
             await Commit();
+
+            logger.LogInformation("Updated model");
 
             return Results.Ok(model);
         }
         catch (Exception e)
         {
+            logger.LogError("Unable to update model :(");
             return Results.BadRequest(e.Message);
         }
     }
+
+    // public async Task<IResult> GetByTitle(string title)
+    // {
+    //     try
+    //     {
+    //         var model = await db.PasswordTableEF.FromSqlInterpolated($"select * from {nameof(db.PasswordTableEF)} where title = '{title}'").FirstOrDefaultAsync();
+
+    //         return Results.Ok(model);
+    //     }
+    //     catch (System.Exception e)
+    //     {
+    //         logger.LogError(e.Message);
+    //         return Results.BadRequest(e.Message);
+    //     }
+    // }
 
 
 

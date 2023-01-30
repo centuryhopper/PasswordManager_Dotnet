@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 
 namespace PasswordManager.Services;
 
-public class AccountPostgresService
+public class AccountPostgresService : IDataAccess<AccountModel>
 {
     /*
         create table test_table (
@@ -260,17 +260,18 @@ public class AccountPostgresService
         }
     }
 
-    public async Task<List<IResult>> PostMany(List<AccountModel> accountModels)
+    public async Task<IResult> PostMany(List<AccountModel> accountModels)
     {
-        List<IResult> results = new List<IResult>(accountModels.Count);
-
-        foreach (var acc in accountModels)
+        try
         {
-            var thisResult = await Post(acc);
-            results.Add(thisResult);
-        }
+            await Task.Run(() => accountModels.ForEach(async (model) => await Post(model)));
 
-        return results;
+            return Results.Ok(accountModels);
+        }
+        catch (Exception e)
+        {
+            return Results.BadRequest(e.Message);
+        }
     }
 
     public async Task<IResult> Put(AccountModel accountModel)
@@ -370,6 +371,11 @@ public class AccountPostgresService
         {
             return Results.BadRequest(e.Message);
         }
+    }
+
+    public Task<int> Commit()
+    {
+        return Task.Run(()=>0);
     }
 
 }
