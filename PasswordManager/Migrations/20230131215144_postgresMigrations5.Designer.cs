@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PasswordManager.Data;
@@ -11,9 +12,11 @@ using PasswordManager.Data;
 namespace PasswordManager.Migrations
 {
     [DbContext(typeof(PasswordDbContext))]
-    partial class PasswordDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230131215144_postgresMigrations5")]
+    partial class postgresMigrations5
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -25,9 +28,6 @@ namespace PasswordManager.Migrations
             modelBuilder.Entity("PasswordManager.Models.AccountModel", b =>
                 {
                     b.Property<string>("accountId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserModeluserId")
                         .HasColumnType("text");
 
                     b.Property<string>("aesIV")
@@ -62,7 +62,7 @@ namespace PasswordManager.Migrations
 
                     b.HasKey("accountId");
 
-                    b.HasIndex("UserModeluserId");
+                    b.HasIndex("userId");
 
                     b.ToTable("PasswordTableEF");
                 });
@@ -104,9 +104,11 @@ namespace PasswordManager.Migrations
 
             modelBuilder.Entity("PasswordManager.Models.AccountModel", b =>
                 {
-                    b.HasOne("PasswordManager.Models.UserModel", null)
+                    b.HasOne("PasswordManager.Models.UserModel", "user")
                         .WithMany("accounts")
-                        .HasForeignKey("UserModeluserId");
+                        .HasForeignKey("userId");
+
+                    b.Navigation("user");
                 });
 
             modelBuilder.Entity("PasswordManager.Models.UserModel", b =>

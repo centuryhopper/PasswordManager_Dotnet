@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PasswordManager.Data;
@@ -11,9 +12,11 @@ using PasswordManager.Data;
 namespace PasswordManager.Migrations
 {
     [DbContext(typeof(PasswordDbContext))]
-    partial class PasswordDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230131204915_postgresMigrations3")]
+    partial class postgresMigrations3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,9 +55,6 @@ namespace PasswordManager.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
-                    b.Property<string>("userId")
-                        .HasColumnType("text");
-
                     b.Property<string>("username")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -79,9 +79,7 @@ namespace PasswordManager.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("password")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasColumnType("text");
 
                     b.Property<string>("refreshToken")
                         .HasColumnType("text");
@@ -93,9 +91,7 @@ namespace PasswordManager.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("username")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasColumnType("text");
 
                     b.HasKey("userId");
 

@@ -28,7 +28,34 @@ public class EFService : IDataAccess<AccountModel>
     {
         try
         {
-            var models = await (from acc in db.PasswordTableEF orderby acc.title select acc).ToListAsync();
+            var models = await (from acc in db.PasswordTableEF where acc.userId == "e67e861e-66ac-4034-9736-38e1ede5e227" orderby acc.title select acc).ToListAsync();
+
+            models.ForEach(model => model.password = SymmetricEncryptionHandler.DecryptStringFromBytes_Aes(Convert.FromBase64String(model.password!), Convert.FromBase64String(model.aesKey!), Convert.FromBase64String(model.aesIV!)));
+
+            logger.LogInformation("retrieved models from get request");
+
+            return Results.Ok(JsonConvert.SerializeObject(models, Formatting.Indented));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.BadRequest(e.Message);
+        }
+    }
+
+    // in the future, the userId will be obtained from the jwt that is received from the client
+    /*
+        client logs in,
+        server sends jwt to client,
+        client sends jwt back to server,
+        for every CRUD action performed
+    */
+    public async Task<IResult> Get(string userId)
+    {
+        try
+        {
+            var models = await (from acc in db.PasswordTableEF where acc.userId == userId orderby acc.title select acc).ToListAsync();
+
             models.ForEach(model => model.password = SymmetricEncryptionHandler.DecryptStringFromBytes_Aes(Convert.FromBase64String(model.password!), Convert.FromBase64String(model.aesKey!), Convert.FromBase64String(model.aesIV!)));
 
             logger.LogInformation("retrieved models from get request");
@@ -54,7 +81,7 @@ public class EFService : IDataAccess<AccountModel>
 
 
             processModelPassword(model);
-            model.id = Guid.NewGuid().ToString();
+            model.accountId = Guid.NewGuid().ToString();
             DateTime myDate = DateTime.ParseExact(
                 DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 "yyyy-MM-dd HH:mm:ss",
@@ -62,9 +89,14 @@ public class EFService : IDataAccess<AccountModel>
             );
             model.insertedDateTime = model.lastModifiedDateTime = myDate.ToString();
 
+            // shadow property
+            var UserModeluserId = db.Entry(model).Property<string?>("UserModeluserId").CurrentValue;
+            string userIdValueFromJWTThatWasSentBackFromClient = "";
+            db.Entry(model).Property<string?>("UserModeluserId").CurrentValue = userIdValueFromJWTThatWasSentBackFromClient;
+
 
             logger.LogInformation($"{model}");
-            db.Add(model);
+            await db.AddAsync(model);
             await Commit();
             logger.LogInformation($"model {model} was successfully added to db");
             return Results.Ok($"{model} was successfully added");
@@ -76,32 +108,32 @@ public class EFService : IDataAccess<AccountModel>
         }
     }
 
-    public async Task<IResult> Get(string id)
-    {
-        try
-        {
-            // var model = await db.PasswordTableEF.FindAsync(id);
-            logger.LogInformation($"table name: \"public\".\"{nameof(db.PasswordTableEF)}\"");
+    // public async Task<IResult> Get(string id)
+    // {
+    //     try
+    //     {
+    //         // var model = await db.PasswordTableEF.FindAsync(id);
+    //         logger.LogInformation($"table name: \"public\".\"{nameof(db.PasswordTableEF)}\"");
 
-            var model = await db.PasswordTableEF.FromSqlRaw($"select * from \"public\".\"{nameof(db.PasswordTableEF)}\" where id = '{id}'").FirstOrDefaultAsync();
+    //         var model = await db.PasswordTableEF.FromSqlRaw($"select * from \"public\".\"{nameof(db.PasswordTableEF)}\" where id = '{id}'").FirstOrDefaultAsync();
 
-            if (model is null)
-            {
-                throw new Exception("Couldn't get by id because model is null");
-            }
+    //         if (model is null)
+    //         {
+    //             throw new Exception("Couldn't get by id because model is null");
+    //         }
 
-            logger.LogInformation($"{model}");
+    //         logger.LogInformation($"{model}");
 
-            model.password = SymmetricEncryptionHandler.DecryptStringFromBytes_Aes(Convert.FromBase64String(model.password!), Convert.FromBase64String(model.aesKey!), Convert.FromBase64String(model.aesIV!));
+    //         model.password = SymmetricEncryptionHandler.DecryptStringFromBytes_Aes(Convert.FromBase64String(model.password!), Convert.FromBase64String(model.aesKey!), Convert.FromBase64String(model.aesIV!));
 
-            return Results.Ok(model);
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.BadRequest(e.Message);
-        }
-    }
+    //         return Results.Ok(model);
+    //     }
+    //     catch (System.Exception e)
+    //     {
+    //         logger.LogError(e.Message);
+    //         return Results.BadRequest(e.Message);
+    //     }
+    // }
 
     public async Task<IResult> Delete(string id)
     {
@@ -135,15 +167,23 @@ public class EFService : IDataAccess<AccountModel>
     {
         try
         {
-            models.ForEach((model) => {
+            models.ForEach((model) =>
+            {
                 processModelPassword(model);
-                model.id = Guid.NewGuid().ToString();
+                model.accountId = Guid.NewGuid().ToString();
                 DateTime myDate = DateTime.ParseExact(
                     DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     "yyyy-MM-dd HH:mm:ss",
                     System.Globalization.CultureInfo.InvariantCulture
                 );
                 model.insertedDateTime = model.lastModifiedDateTime = myDate.ToString();
+
+                // shadow property
+                var UserModeluserId = db.Entry(model).Property<string?>("UserModeluserId").CurrentValue;
+                string userIdValueFromJWTThatWasSentBackFromClient = "";
+                db.Entry(model).Property<string?>("UserModeluserId").CurrentValue = userIdValueFromJWTThatWasSentBackFromClient;
+
+                logger.LogInformation($"shadow property: {UserModeluserId}");
             });
             await db.PasswordTableEF.AddRangeAsync(models);
             await Commit();
@@ -184,7 +224,7 @@ public class EFService : IDataAccess<AccountModel>
     {
         try
         {
-            var model = await (from m in db.PasswordTableEF where m.id == argModel.id select m).FirstOrDefaultAsync();
+            var model = await (from m in db.PasswordTableEF where m.accountId == argModel.accountId select m).FirstOrDefaultAsync();
 
             if (model is null)
             {

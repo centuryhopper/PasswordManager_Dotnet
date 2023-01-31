@@ -9,26 +9,26 @@ using PasswordManager.Services;
 
 [Route("api/[controller]")]
 [ApiController]
-public class PasswordManagerController : ControllerBase
+public class UsersController : ControllerBase
 {
-    private readonly PasswordManagerPostgresService _passwordManagerPostgresService;
+    private readonly IAuthenticationService<UserModel> _authService;
 
-    public PasswordManagerController(PasswordManagerPostgresService passwordManagerPostgresService)
+    public UsersController(IAuthenticationService<UserModel> authService)
     {
-        _passwordManagerPostgresService = passwordManagerPostgresService;
+        _authService = authService;
     }
 
     [HttpPost("register")]
-    public async Task<IResult> register([FromBody] PasswordManagerModel pwm)
+    public async Task<IResult> Register([FromBody] UserModel pwm)
     {
-        return await _passwordManagerPostgresService.register(pwm);
+        return await _authService.Register(pwm);
     }
 
     [HttpPost("login"), Authorize]
-    public async Task<IResult> login([FromBody] PasswordManagerModel pwm)
+    public async Task<IResult> Login([FromBody] UserModel pwm)
     {
-        SetRefreshToken(GenerateRefreshToken(), pwm);
-        return await _passwordManagerPostgresService.login(pwm);
+        // SetRefreshToken(GenerateRefreshToken(), pwm);
+        return await _authService.Login(pwm);
     }
 
     // [HttpPost("refresh-token")]
@@ -66,7 +66,7 @@ public class PasswordManagerController : ControllerBase
         return refreshToken;
     }
 
-    private void SetRefreshToken(RefreshToken newRefreshToken, PasswordManagerModel pwm)
+    private void SetRefreshToken(RefreshToken newRefreshToken, UserModel pwm)
     {
         var cookieOptions = new CookieOptions
         {
@@ -76,9 +76,9 @@ public class PasswordManagerController : ControllerBase
 
         Response.Cookies.Append("refreshToken", newRefreshToken.Token, cookieOptions);
 
-        pwm.RefreshToken = newRefreshToken.Token;
-        pwm.TokenCreated = newRefreshToken.Created;
-        pwm.TokenExpires = newRefreshToken.Expires;
+        pwm.refreshToken = newRefreshToken.Token;
+        pwm.tokenCreated = newRefreshToken.Created;
+        pwm.tokenExpires = newRefreshToken.Expires;
     }
 
 }

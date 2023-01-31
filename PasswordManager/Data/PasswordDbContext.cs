@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using PasswordManager.Models;
 
-
 namespace PasswordManager.Data;
 
 public class PasswordDbContext : DbContext
@@ -19,5 +18,7 @@ public class PasswordDbContext : DbContext
     }
 
     public DbSet<AccountModel> PasswordTableEF { get; set; }
+    public DbSet<UserModel> UserTableEF { get; set; }
+
 
 }

@@ -209,7 +209,7 @@ public class AccountPostgresService : IDataAccess<AccountModel>
             // System.Console.WriteLine(accountModel);
 
             // configure parameters
-            myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, accountModel.id ?? Guid.NewGuid().ToString());
+            myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, accountModel.accountId ?? Guid.NewGuid().ToString());
 
             myCommand.Parameters.AddWithValue("@title", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)accountModel.title ?? DBNull.Value);
 
@@ -314,7 +314,7 @@ public class AccountPostgresService : IDataAccess<AccountModel>
             }
 
             // configure parameters
-            myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, accountModel.id!);
+            myCommand.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, accountModel.accountId!);
 
             myCommand.Parameters.AddWithValue("@title", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)accountModel.title ?? DBNull.Value);
 
@@ -375,7 +375,7 @@ public class AccountPostgresService : IDataAccess<AccountModel>
 
     public Task<int> Commit()
     {
-        return Task.Run(()=>0);
+        return Task.Run(() => 0);
     }
 
 }

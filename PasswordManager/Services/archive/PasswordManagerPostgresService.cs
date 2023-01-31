@@ -6,8 +6,6 @@ using PasswordManager.Utils;
 using System.Data;
 using Npgsql;
 using System.Security.Cryptography;
-using System.Web;
-using Microsoft.AspNetCore.Http;
 
 
 
@@ -46,7 +44,7 @@ public class PasswordManagerPostgresService
         postgresqlConnectionString = connStr;
     }
 
-    public async Task<IResult> login(PasswordManagerModel pwm)
+    public async Task<IResult> login(UserModel pwm)
     {
         // query table to see if the the username and password pair exists in the database. If so the return success and the userId associated with that account (we can filter the password accounts table by this userId to display the proper accounts to the user). Otherwise we return failure to find account pair in the table
 
@@ -125,7 +123,7 @@ public class PasswordManagerPostgresService
         }
     }
 
-    public async Task<IResult> register(PasswordManagerModel pwm)
+    public async Task<IResult> register(UserModel pwm)
     {
         // abort if user already in the database. Otherwise add post a new user with the specified username and password into the database
         string query = @"
@@ -164,7 +162,7 @@ public class PasswordManagerPostgresService
             myCon2.Open();
             using NpgsqlCommand myCommand2 = new NpgsqlCommand(query, myCon2);
 
-            myCommand2.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, pwm.id ?? id);
+            myCommand2.Parameters.AddWithValue("@id", NpgsqlTypes.NpgsqlDbType.Varchar, pwm.userId ?? id);
 
             myCommand2.Parameters.AddWithValue("@username", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)pwm.username ?? DBNull.Value);
 
@@ -174,9 +172,9 @@ public class PasswordManagerPostgresService
                 System.Globalization.CultureInfo.InvariantCulture
             );
 
-            myCommand2.Parameters.AddWithValue("@inserteddatetime", NpgsqlTypes.NpgsqlDbType.Timestamp, (object?) myDate ?? DBNull.Value);
+            myCommand2.Parameters.AddWithValue("@inserteddatetime", NpgsqlTypes.NpgsqlDbType.Timestamp, (object?)myDate ?? DBNull.Value);
 
-            myCommand2.Parameters.AddWithValue("@lastmodifieddatetime", NpgsqlTypes.NpgsqlDbType.Timestamp, (object?) myDate ?? DBNull.Value);
+            myCommand2.Parameters.AddWithValue("@lastmodifieddatetime", NpgsqlTypes.NpgsqlDbType.Timestamp, (object?)myDate ?? DBNull.Value);
 
 
             if (pwm.password != null)
@@ -189,7 +187,6 @@ public class PasswordManagerPostgresService
                     pwm.aesKey = Convert.ToBase64String(myAes.Key);
                     pwm.aesIV = Convert.ToBase64String(myAes.IV);
                 }
-
             }
 
             myCommand2.Parameters.AddWithValue("@password", NpgsqlTypes.NpgsqlDbType.Varchar, (object?)pwm.password ?? DBNull.Value);
@@ -208,31 +205,33 @@ public class PasswordManagerPostgresService
         }
     }
 
-    private string createJwtToken(PasswordManagerModel pwm)
+    private string createJwtToken(UserModel pwm)
     {
         List<Claim> claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, pwm.username!),
-                new Claim(ClaimTypes.Role, "Admin")
-            };
+        {
+            new Claim(ClaimTypes.NameIdentifier, pwm.username!),
+            new Claim(ClaimTypes.Role, "Admin"),
+            new Claim(JwtRegisteredClaimNames.Sub, pwm.userId!)
+        };
 
-            var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
-                _configuration.GetSection("AppSettings:Token").Value!));
+        var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
+            _configuration.GetSection("AppSettings:Token").Value!));
 
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
-            var token = new JwtSecurityToken(
-                claims: claims,
-                expires: DateTime.Now.AddDays(1),
-                signingCredentials: creds);
+        var token = new JwtSecurityToken(
+            claims: claims,
+            expires: DateTime.Now.AddDays(1),
+            signingCredentials: creds);
 
-            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
-            return jwt;
+        return jwt;
     }
 
 
 
 
 }
+
 

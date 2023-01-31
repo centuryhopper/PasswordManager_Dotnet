@@ -24,11 +24,12 @@ builder.Services.AddControllers();
 // builder.Services.AddScoped<IDataAccess<AccountModel>, AccountPostgresService>();
 builder.Services.AddScoped<IDataAccess<AccountModel>, EFService>();
 
+builder.Services.AddScoped<IAuthenticationService<UserModel>, AuthenticationService>();
 
 
 
 // allow client-side apps to fetch data from this api
-builder.Services.AddCors(p => p.AddPolicy("corspolicy", build =>
+builder.Services.AddCors(p => p.AddPolicy(name: "client_policy", build =>
 {
     build.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
 }));
@@ -76,10 +77,13 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 // allow client-side apps to fetch data from this api
-app.UseCors(builder =>
-    builder.AllowAnyOrigin().
-            AllowAnyHeader().
-            AllowAnyMethod()
+// MUST be placed AFTER app.UseRouting() and BEFORE app.UseAuthentication()
+app.UseCors(
+    // builder =>
+    // builder.AllowAnyOrigin().
+    //         AllowAnyHeader().
+    //         AllowAnyMethod()
+    "client_policy"
 );
 
 app.UseAuthentication();
