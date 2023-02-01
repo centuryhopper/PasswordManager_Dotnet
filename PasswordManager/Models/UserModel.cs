@@ -18,14 +18,13 @@ public class UserModel
 
     public string? aesIV { get; set; }
     public List<AccountModel>? accounts { get; set; }
-
-    public string? refreshToken { get; set; } = string.Empty;
-    public DateTime? tokenCreated { get; set; }
-    public DateTime? tokenExpires { get; set; }
+    public string currentJwtToken { get; set; } = string.Empty;
+    public string? tokenCreated { get; set; }
+    public string? tokenExpires { get; set; }
 
     public override string ToString()
     {
-        return $"username: {username}, password: {password}";
+        return $"{nameof(username)}: {username}, {nameof(password)}: {password}, {nameof(aesKey)}: {aesKey}, {nameof(aesIV)}: {aesIV}, {nameof(currentJwtToken)}: {currentJwtToken}, {nameof(tokenCreated)}: {tokenCreated}, {nameof(tokenExpires)}: {tokenExpires}";
     }
 }
 

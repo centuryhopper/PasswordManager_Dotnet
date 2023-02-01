@@ -9,7 +9,8 @@ public class AccountModel
     public string? accountId { get; set; }
 
     // each account will be associated with only one user
-    public string? userId {get; set;}
+    [Required]
+    public UserModel user {get; set;}
 
     [Required, StringLength(32)]
     public string? title { get; set; }

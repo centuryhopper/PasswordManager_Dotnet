@@ -28,7 +28,7 @@ public class EFService : IDataAccess<AccountModel>
     {
         try
         {
-            var models = await (from acc in db.PasswordTableEF where acc.userId == "e67e861e-66ac-4034-9736-38e1ede5e227" orderby acc.title select acc).ToListAsync();
+            var models = await (from acc in db.PasswordTableEF orderby acc.title select acc).ToListAsync();
 
             models.ForEach(model => model.password = SymmetricEncryptionHandler.DecryptStringFromBytes_Aes(Convert.FromBase64String(model.password!), Convert.FromBase64String(model.aesKey!), Convert.FromBase64String(model.aesIV!)));
 
@@ -54,13 +54,17 @@ public class EFService : IDataAccess<AccountModel>
     {
         try
         {
-            var models = await (from acc in db.PasswordTableEF where acc.userId == userId orderby acc.title select acc).ToListAsync();
+            var samples = await db.PasswordTableEF.Select(acc => acc).ToListAsync();
+
+            // get foreign key shadow property
+            var models = samples.Where(acc => db.Entry(acc).Property<string?>("userId").CurrentValue == userId).OrderBy(acc => acc.title).ToList();
 
             models.ForEach(model => model.password = SymmetricEncryptionHandler.DecryptStringFromBytes_Aes(Convert.FromBase64String(model.password!), Convert.FromBase64String(model.aesKey!), Convert.FromBase64String(model.aesIV!)));
 
             logger.LogInformation("retrieved models from get request");
 
-            return Results.Ok(JsonConvert.SerializeObject(models, Formatting.Indented));
+            // return Results.Ok(JsonConvert.SerializeObject(models, Formatting.Indented));
+            return Results.Ok(models);
         }
         catch (Exception e)
         {
@@ -90,9 +94,9 @@ public class EFService : IDataAccess<AccountModel>
             model.insertedDateTime = model.lastModifiedDateTime = myDate.ToString();
 
             // shadow property
-            var UserModeluserId = db.Entry(model).Property<string?>("UserModeluserId").CurrentValue;
+            var userId = db.Entry(model).Property<string?>("userId").CurrentValue;
             string userIdValueFromJWTThatWasSentBackFromClient = "";
-            db.Entry(model).Property<string?>("UserModeluserId").CurrentValue = userIdValueFromJWTThatWasSentBackFromClient;
+            db.Entry(model).Property<string?>("userId").CurrentValue = userIdValueFromJWTThatWasSentBackFromClient;
 
 
             logger.LogInformation($"{model}");
@@ -179,11 +183,11 @@ public class EFService : IDataAccess<AccountModel>
                 model.insertedDateTime = model.lastModifiedDateTime = myDate.ToString();
 
                 // shadow property
-                var UserModeluserId = db.Entry(model).Property<string?>("UserModeluserId").CurrentValue;
+                var userId = db.Entry(model).Property<string?>("userId").CurrentValue;
                 string userIdValueFromJWTThatWasSentBackFromClient = "";
-                db.Entry(model).Property<string?>("UserModeluserId").CurrentValue = userIdValueFromJWTThatWasSentBackFromClient;
+                db.Entry(model).Property<string?>("userId").CurrentValue = userIdValueFromJWTThatWasSentBackFromClient;
 
-                logger.LogInformation($"shadow property: {UserModeluserId}");
+                logger.LogInformation($"shadow property: {userId}");
             });
             await db.PasswordTableEF.AddRangeAsync(models);
             await Commit();

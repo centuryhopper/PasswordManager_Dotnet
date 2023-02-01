@@ -15,6 +15,8 @@ public class PasswordDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.UseSerialColumns();
+
+        // fluent api stuff would go in this method
     }
 
     public DbSet<AccountModel> PasswordTableEF { get; set; }

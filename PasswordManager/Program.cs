@@ -9,6 +9,22 @@ using PasswordManager.Models;
 
 // type 'dotnet list package' to list all installed nuget packages
 
+string getConnectionString(WebApplicationBuilder builder)
+{
+    // ElephantSQL formatting
+    var optionsBuilder = new DbContextOptionsBuilder<PasswordDbContext>();
+    // ElephantSQL formatting
+    var uriString = builder.Configuration.GetConnectionString("cloudConnectionString")!;
+    var uri = new Uri(uriString);
+    var db = uri.AbsolutePath.Trim('/');
+    var user = uri.UserInfo.Split(':')[0];
+    var passwd = uri.UserInfo.Split(':')[1];
+    var port = uri.Port > 0 ? uri.Port : 5432;
+    var connStr = string.Format("Server={0};Database={1};User Id={2};Password={3};Port={4}",
+        uri.Host, db, user, passwd, port);
+    return connStr;
+}
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,13 +36,9 @@ builder.Services.AddControllers();
 
 // builder.Services.Configure<PasswordManagerSettings>(builder.Configuration.GetSection("PostgreSQLSettings"));
 
-// builder.Services.AddScoped<AccountPostgresService>();
-// builder.Services.AddScoped<IDataAccess<AccountModel>, AccountPostgresService>();
 builder.Services.AddScoped<IDataAccess<AccountModel>, EFService>();
 
 builder.Services.AddScoped<IAuthenticationService<UserModel>, AuthenticationService>();
-
-
 
 // allow client-side apps to fetch data from this api
 builder.Services.AddCors(p => p.AddPolicy(name: "client_policy", build =>
@@ -49,31 +61,41 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 builder.Services.AddDbContextPool<PasswordDbContext>(
     options =>
     {
-
-        // ElephantSQL formatting
-        var uriString = builder.Configuration.GetConnectionString("cloudConnectionString")!;
-        var uri = new Uri(uriString);
-        var db = uri.AbsolutePath.Trim('/');
-        var user = uri.UserInfo.Split(':')[0];
-        var passwd = uri.UserInfo.Split(':')[1];
-        var port = uri.Port > 0 ? uri.Port : 5432;
-        var connStr = string.Format("Server={0};Database={1};User Id={2};Password={3};Port={4}",
-            uri.Host, db, user, passwd, port);
-
+        var connStr = getConnectionString(builder);
         options.UseNpgsql(
                 connStr
         );
-
     }
 );
 
+
+
+#region just for testing
+    // var optionsBuilder = new DbContextOptionsBuilder<PasswordDbContext>();
+
+    // var connStr = getConnectionString(builder);
+
+    // optionsBuilder.UseNpgsql(
+    //         connStr
+    // );
+    // using (var context = new PasswordDbContext(optionsBuilder.Options))
+    // {
+    //     // Use the context to perform database operations.
+    //     var passwords = await context.PasswordTableEF.ToListAsync();
+    //     passwords.ForEach(System.Console.WriteLine);
+
+    //     System.Console.WriteLine("====================================================================================");
+
+    //     var models = await context.UserTableEF.ToListAsync();
+    //     models.ForEach(System.Console.WriteLine);
+    // }
+#endregion
 
 
 var app = builder.Build();
 
 app.UseHttpsRedirection();
 // app.MapControllers();
-
 app.UseRouting();
 
 // allow client-side apps to fetch data from this api
@@ -100,7 +122,6 @@ app.UseEndpoints(endpoints =>
 // app.UseSwaggerUI();
 // app.UseSwagger(x => x.SerializeAsV2 = true);
 
-// app.UseCookies();
 
 app.Run();
 

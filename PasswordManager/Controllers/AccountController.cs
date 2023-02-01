@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PasswordManager.Models;
 using PasswordManager.Services;
@@ -21,7 +22,7 @@ public class AccountController : ControllerBase
     /// get all accounts (decryption applied)
     /// </summary>
     /// <returns></returns>
-    [HttpGet]
+    [HttpGet, Authorize]
     public async Task<IResult> Get()
     {
         return await dataAccess.Get();

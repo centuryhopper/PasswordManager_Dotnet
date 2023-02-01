@@ -66,19 +66,19 @@ public class UsersController : ControllerBase
         return refreshToken;
     }
 
-    private void SetRefreshToken(RefreshToken newRefreshToken, UserModel pwm)
-    {
-        var cookieOptions = new CookieOptions
-        {
-            HttpOnly = true,
-            Expires = newRefreshToken.Expires
-        };
+    // private void SetRefreshToken(RefreshToken newRefreshToken, UserModel pwm)
+    // {
+    //     var cookieOptions = new CookieOptions
+    //     {
+    //         HttpOnly = true,
+    //         Expires = newRefreshToken.Expires
+    //     };
 
-        Response.Cookies.Append("refreshToken", newRefreshToken.Token, cookieOptions);
+    //     Response.Cookies.Append("refreshToken", newRefreshToken.Token, cookieOptions);
 
-        pwm.refreshToken = newRefreshToken.Token;
-        pwm.tokenCreated = newRefreshToken.Created;
-        pwm.tokenExpires = newRefreshToken.Expires;
-    }
+    //     pwm.currentJwtToken = newRefreshToken.Token;
+    //     pwm.tokenCreated = newRefreshToken.Created;
+    //     pwm.tokenExpires = newRefreshToken.Expires;
+    // }
 
 }
